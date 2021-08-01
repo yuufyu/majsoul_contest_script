@@ -286,7 +286,7 @@ function tehai_to_string(hand, ming) {
 }
 
 // CSVのヘッダ
-const CSV_HEADER = ["game_uuid","start_time","end_time","場","局","本場","players","type","hora_result","old_scores","delta_scores","scores","和了者id","和了者名前","tsumo","放銃者id","放銃者名前","fans","count","fu","yaku0", "yaku1", "yaku2", "yaku3", "yaku4", "yaku5","hu_tile","tehai", "prev_action"];
+const CSV_HEADER = ["game_uuid","start_time","end_time","場","局","本場","players","player_names","type","hora_result","old_scores","delta_scores","scores","和了者id","和了者名前","tsumo","放銃者id","放銃者名前","fans","count","fu","yaku0", "yaku1", "yaku2", "yaku3", "yaku4", "yaku5","hu_tile","tehai", "prev_action"];
 
 async function fetch_contest_record(contest_unique_id, options) {
   let max_record_count = options.record_count;
@@ -348,6 +348,7 @@ async function fetch_contest_record(contest_unique_id, options) {
           start_time : record_info['start_time'],
           end_time :   record_info['end_time'],
           players   : record_info.accounts.map( account => {return account.account_id; }),
+          player_names : record_info.accounts.map( account => {return account.nickname;}),
         });
 
         if(hora.type == "和了"){
