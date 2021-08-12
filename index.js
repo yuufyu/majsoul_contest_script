@@ -402,6 +402,14 @@ async function fetch_contest_info(contest_id, options) {
   console.log(contest_info);
 }
 
+async function fetch_contest_by_contest_id(contest_id, options){
+  const majsoul = new Majsoul(config.mjsoul_server_url);
+  const contest_info = await majsoul.getContestInfoByContestId(contest_id);
+  const unique_id = contest_info['contest_info']['unique_id'];
+  console.log(contest_info);
+  await fetch_contest_record(unique_id, options);
+}
+
 /* start */
 (async () => {
   const default_log_file_suffix = `${new Date().getTime()}.csv`;
@@ -422,6 +430,16 @@ async function fetch_contest_info(contest_id, options) {
     .command("contest_info <contest_id>")
     .description("fetch contest info")
     .action(fetch_contest_info);
+    
+  program
+    .command("contest_by_contest_id <contest_id>")
+    .option('-o, --output <output>', 'Output csv file', "contests_log_" + default_log_file_suffix)
+    .option('-n, --next_index <next_index>', 'Next index param', -1)
+    .option('-c, --record_count <record_count>', 'Count of records', 20)
+    .option('--last_game_uuid <last_game_uuid>', 'Last game_uuid')
+    .option('-s, --source <source>', 'Last record log file')
+    .description("fetch contest record by contest_id")
+    .action(fetch_contest_by_contest_id);
 
   await program.parseAsync();
 
