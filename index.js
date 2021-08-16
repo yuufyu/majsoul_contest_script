@@ -88,7 +88,7 @@ function parse_hule(kyoku){
   let cur_kyoku = null;
   let new_round_data = null;
   let baojia_seat = -1; // 放銃者を特定するため直前のAction者を保持
-  let prev_name = "-"; // 直前のAction
+  let prev_action = {name : "-", data : null}; // 直前のAction
   kyoku.forEach((r) => {
     const data = r.data;
     switch(r.name){
@@ -189,10 +189,11 @@ function parse_hule(kyoku){
             count : hule.count,
             hand : hule.hand,
             ming : hule.ming,
+            hu_pai  : hule.hu_tile,
             hu_tile : convert_pai_str(hule.hu_tile),
             tehai   : tehai_to_string(hule.hand, hule.ming),
             doras : tehai_to_string(hule.doras),
-            prev_action : prev_name, // 直前のアクションを保持
+            prev_action : prev_action, // 直前のアクションを保持
             //point : hule.point_sum,
             //liqi : hule.liqi
           };
@@ -204,7 +205,7 @@ function parse_hule(kyoku){
       }
         
     }
-    prev_name = r.name;
+    prev_action = r;
   });
 
   // メンバをcsvへ出力できるように文字列化
@@ -286,7 +287,7 @@ function tehai_to_string(hand, ming) {
 }
 
 // CSVのヘッダ
-const CSV_HEADER = ["game_uuid","start_time","end_time","場","局","本場","players","player_names","type","hora_result","old_scores","delta_scores","scores","和了者id","和了者名前","tsumo","放銃者id","放銃者名前","fans","count","fu","yaku0", "yaku1", "yaku2", "yaku3", "yaku4", "yaku5","hu_tile","tehai", "prev_action"];
+const CSV_HEADER = ["game_uuid","start_time","end_time","場","局","本場","players","player_names","type","hora_result","old_scores","delta_scores","scores","和了者id","和了者名前","tsumo","放銃者id","放銃者名前","fans","count","fu","yaku0", "yaku1", "yaku2", "yaku3", "yaku4", "yaku5","hu_tile","tehai"];
 
 async function fetch_contest_record(contest_unique_id, options) {
   let max_record_count = options.record_count;
@@ -360,7 +361,9 @@ async function fetch_contest_record(contest_unique_id, options) {
             agariyaku.push(hora_result);
           }else if(/(.*役満)/g.test(hora_result)){
             const fans_str = hora['fans'];
-            const fans = JSON.parse(fans_str).map(fan => {return fan.name;});
+            const fans = JSON.parse(fans_str).map(fan => {
+              return custom_fan_name(fan.name, hora)
+            });
             agariyaku.push(...fans);
           }
           const yaku_record = agariyaku.reduce((obj, yaku, idx) => {
@@ -394,6 +397,26 @@ async function fetch_contest_record(contest_unique_id, options) {
   
   writer.end();
   
+}
+
+// 大七星
+function is_daishitisei(hora){
+  return /^東東?南南?西西?北北?白白?發發?中中?/.test(hora.tehai);
+}
+
+// 槍槓
+function is_chankan_kokushi(hora){
+  return false;
+}
+
+function custom_fan_name(fan_name, hora){
+  let fan_name_str = fan_name;
+  console.log(hora);
+  if(is_daishitisei(hora)){
+    fan_name_str = "大七星";
+  }
+
+  return fan_name_str;
 }
 
 async function fetch_contest_info(contest_id, options) {
