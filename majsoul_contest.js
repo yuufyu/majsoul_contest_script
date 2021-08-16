@@ -405,14 +405,22 @@ function is_daishitisei(hora){
 
 // 槍槓
 function is_chankan_kokushi(hora){
+  const prev_action = hora.prev_action;
+  if(prev_action){
+    return prev_action.name == 'RecordAnGangAddGang' && (prev_action.data['type'] == 2 || prev_action.data['type'] == 3);
+  }
   return false;
 }
 
 function custom_fan_name(fan_name, hora){
   let fan_name_str = fan_name;
-  console.log(hora);
+
   if(is_daishitisei(hora)){
     fan_name_str = "大七星";
+  }
+
+  if(is_chankan_kokushi(hora)){
+    fan_name_str = "国士無双(槍槓)";
   }
 
   return fan_name_str;
