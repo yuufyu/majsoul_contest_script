@@ -33,6 +33,14 @@ const majsoul_contest = require('./majsoul_contest');
         .option('-s, --source <source>', 'Last record log file')
         .description("fetch contest record by contest_id")
         .action(majsoul_contest.fetch_contest_by_contest_id);
+        
+    program
+        .command("download_contest <unique_id>")
+        .option('--last_game_uuid <last_game_uuid>', 'Last game_uuid')
+        .option('-c, --record_count <record_count>', 'Count of records', 9999999)
+        .option('-n, --next_index <next_index>', 'Next index param', -1)
+        .description("download contest record log")
+        .action(majsoul_contest.download_contest_log_paipu);
 
     await program.parseAsync();
 

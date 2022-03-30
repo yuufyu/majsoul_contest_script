@@ -75,6 +75,11 @@ class Majsoul {
   async getRecords(game_uuid){
     return JSON.parse(await this.get(this.baseURL + "/records/" + game_uuid));
   }
+  
+  async getRawRecords(game_uuid){
+    const log = await this.get(this.baseURL + "/records/" + game_uuid + "?format=raw");
+    return log;
+  }
 }
 
 const RESOURCE_DATA_JSON = require('./data.json');
@@ -288,6 +293,14 @@ function tehai_to_string(hand, ming) {
 // CSVのヘッダ
 const CSV_HEADER = ["game_uuid","start_time","end_time","場","局","本場","players","player_names","type","hora_result","old_scores","delta_scores","scores","和了者id","和了者名前","tsumo","放銃者id","放銃者名前","fans","count","fu","yaku0", "yaku1", "yaku2", "yaku3", "yaku4", "yaku5","hu_tile","tehai"];
 
+const time_wait = async (ms) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(); // setTimeoutの第一引数の関数として簡略化できる
+    }, ms)
+  });
+}
+
 async function fetch_contest_record(contest_unique_id, options) {
   let max_record_count = options.record_count;
   let next_index = options.next_index;
@@ -398,6 +411,56 @@ async function fetch_contest_record(contest_unique_id, options) {
   
 }
 
+async function download_contest_log_paipu(contest_unique_id, options) {
+  let max_record_count = options.record_count;
+  let next_index = options.next_index;
+  let last_game_uuid = options.last_game_uuid;
+  console.log(contest_unique_id,options);
+  console.log("contest", contest_unique_id);
+
+  if(last_game_uuid){
+    max_record_count = 999999; // last_game_uuidを優先
+  }
+
+  const majsoul = new Majsoul(config.mjsoul_server_url);
+
+  let total_count = 0;
+  do {
+    console.log(`next_index = ${next_index}`);
+    const contest_records = await majsoul.getListOfRecords(contest_unique_id, next_index); // 大会牌譜一覧
+    next_index = contest_records.next_index;
+
+    if(!contest_records.record_list){
+      console.log("Not found record list.");
+      break;
+    }
+
+    for(const record_info of contest_records.record_list){
+      const game_uuid = record_info['uuid'];
+
+      if(last_game_uuid && game_uuid === last_game_uuid){
+        next_index = -1; // ループを強制的に脱出
+        console.log(`BREAK loop! Because detect last game_uuid(${game_uuid}).`);
+        break; 
+      }
+
+      console.log(`Get record : ${game_uuid}`);
+
+      const full_record = await majsoul.getRawRecords(game_uuid); // 牌譜データ
+      
+      const json_log_filename = "logs/log_" + game_uuid + ".json";
+      fs.writeFileSync(json_log_filename, full_record);
+      time_wait(1000);
+      
+
+      // let hora_log = parse_hule(full_record);
+      // for(const hora of hora_log) {
+      // }
+      total_count++;
+    }
+
+  }while(next_index >= 0 && total_count < max_record_count ); // end of do-while  
+}
 // 大七星
 function is_daishitisei(hora){
   return /^東東?南南?西西?北北?白白?發發?中中?/.test(hora.tehai);
@@ -440,5 +503,5 @@ async function fetch_contest_by_contest_id(contest_id, options){
   await fetch_contest_record(unique_id, options);
 }
 
-module.exports = {fetch_contest_record, fetch_contest_info, fetch_contest_by_contest_id, custom_fan_name};
+module.exports = {fetch_contest_record, fetch_contest_info, fetch_contest_by_contest_id, custom_fan_name, download_contest_log_paipu};
 
