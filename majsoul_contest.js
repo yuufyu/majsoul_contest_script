@@ -88,6 +88,8 @@ function parse_hule(kyoku){
   let new_round_data = null;
   let baojia_seat = -1; // 放銃者を特定するため直前のAction者を保持
   let prev_action = {name : "-", data : null}; // 直前のAction
+  let discard_yaochu_pai = [false, false, false]; // 一九字牌を捨てたか判定flag
+
   kyoku.forEach((r) => {
     const data = r.data;
     switch(r.name){
@@ -95,6 +97,7 @@ function parse_hule(kyoku){
       {
         new_round_data = data;
         baojia_seat = data['ju']; // 起家
+        discard_yaochu_pai = [false, false, false];
         cur_kyoku = {
           '場'       : KAZE[data['chang']],
           '局'       : data['ju'] + 1, // 局
@@ -106,6 +109,18 @@ function parse_hule(kyoku){
       }
 
       case "RecordDiscardTile":
+      {
+        baojia_seat = data['seat'];
+
+        // 一九字牌を捨てたか判定
+        const discard_tile = data['tile'];
+        const is_yaochu = (discard_tile[0] == '1' || discard_tile[0] == '9' || discard_tile[1] == 'z');
+        if(is_yaochu){
+          discard_yaochu_pai[baojia_seat] = true;
+        }
+
+        break;
+      }
       case "RecordBaBei" :
       case "RecordAnGangAddGang":
       {
@@ -193,6 +208,7 @@ function parse_hule(kyoku){
             tehai   : tehai_to_string(hule.hand, hule.ming),
             doras : tehai_to_string(hule.doras),
             prev_action : prev_action, // 直前のアクションを保持
+            discard_yaochu : discard_yaochu_pai[hule.seat],
             //point : hule.point_sum,
             //liqi : hule.liqi
           };
@@ -385,6 +401,10 @@ function override_fan_name(fan_name, hora){
 
   if(is_chankan(hora) && fan_name == "国士無双"){
     fan_name_str = "国士無双(槍槓)";
+  }
+
+  if(fan_name == "国士無双十三面待ち" && hora.discard_yaochu){
+    fan_name_str = "国士無双十三面待ち(フリテン)"
   }
 
   return fan_name_str;
