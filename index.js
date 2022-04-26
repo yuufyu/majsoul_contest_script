@@ -34,6 +34,11 @@ const majsoul_contest = require('./majsoul_contest');
         .description("fetch contest record by contest_id")
         .action(majsoul_contest.fetch_contest_by_contest_id);
 
+    program
+        .command("record <game_uuid>")
+        .description("fetch record paifu")
+        .action(majsoul_contest.fetch_record);
+    
     await program.parseAsync();
 
     return;

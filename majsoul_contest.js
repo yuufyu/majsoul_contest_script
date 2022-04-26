@@ -343,43 +343,7 @@ async function fetch_contest_record(contest_unique_id, options) {
       let hora_log = parse_hule(full_record);
 
       for(const hora of hora_log) {
-        Object.assign(hora, {
-          game_uuid : game_uuid,
-          start_time : record_info['start_time'],
-          end_time :   record_info['end_time'],
-          players   : record_info.accounts.map( account => {return account.account_id; }),
-          player_names : record_info.accounts.map( account => {return account.nickname;}),
-        });
-
-        if(hora.type == "和了"){
-          const hora_result = calc_result(hora, record_info.config.mode.detail_rule.have_qieshangmanguan);
-          
-          // 役集計用列追加
-          let agariyaku = [];
-          if(hora_result.startsWith('数え役満')){
-            agariyaku.push(hora_result);
-          }else if(/(.*役満)/g.test(hora_result)){
-            const fans_str = hora['fans'];
-            const fans = JSON.parse(fans_str).map(fan => {
-              return override_fan_name(fan.name, hora)
-            });
-            agariyaku.push(...fans);
-          }
-          const yaku_record = agariyaku.reduce((obj, yaku, idx) => {
-            obj["yaku"+idx] = yaku;
-            return obj;
-          },{});
-          
-          Object.assign(hora, yaku_record);
-          
-          Object.assign(hora, {
-            '和了者id'    : record_info.accounts[hora.seat].account_id,
-            '和了者名前'  : record_info.accounts[hora.seat].nickname,
-            '放銃者id'    : record_info.accounts[hora.from_seat].account_id,
-            '放銃者名前'  : record_info.accounts[hora.from_seat].nickname,
-            'hora_result' : hora_result,
-          });
-        }
+        record_to_result(hora, record_info);
         writer.write(hora);
       }
       total_count++;
@@ -405,9 +369,9 @@ function is_daishitisei(hora){
 
 // 槍槓
 function is_chankan(hora){
-  const prev_action = hora.prev_action;
+  const prev_action = JSON.parse(hora.prev_action);
   if(prev_action){
-    return prev_action.name == 'RecordAnGangAddGang' && (prev_action.data['type'] == 2 || prev_action.data['type'] == 3);
+    return (prev_action.name == 'RecordAnGangAddGang') && (prev_action.data['type'] == 2 || prev_action.data['type'] == 3);
   }
   return false;
 }
@@ -426,6 +390,79 @@ function override_fan_name(fan_name, hora){
   return fan_name_str;
 }
 
+function record_to_result(hora, record_info){
+  Object.assign(hora, {
+    game_uuid : record_info['uuid'],
+    start_time : record_info['start_time'],
+    end_time :   record_info['end_time'],
+    players   : record_info.accounts.map( account => {return account.account_id; }),
+    player_names : record_info.accounts.map( account => {return account.nickname;}),
+  });
+
+  if(hora.type == "和了"){
+    const hora_result = calc_result(hora, record_info.config.mode.detail_rule.have_qieshangmanguan);
+    
+    // 役集計用列追加
+    let agariyaku = [];
+    if(hora_result.startsWith('数え役満')){
+      agariyaku.push(hora_result);
+    }else if(/(.*役満)/g.test(hora_result)){
+      const fans_str = hora['fans'];
+      const fans = JSON.parse(fans_str).map(fan => {
+        return override_fan_name(fan.name, hora);
+      });
+      agariyaku.push(...fans);
+    }
+    const yaku_record = agariyaku.reduce((obj, yaku, idx) => {
+      obj["yaku"+idx] = yaku;
+      return obj;
+    },{});
+    
+    Object.assign(hora, yaku_record);
+    
+    Object.assign(hora, {
+      '和了者id'    : record_info.accounts[hora.seat].account_id,
+      '和了者名前'  : record_info.accounts[hora.seat].nickname,
+      '放銃者id'    : record_info.accounts[hora.from_seat].account_id,
+      '放銃者名前'  : record_info.accounts[hora.from_seat].nickname,
+      'hora_result' : hora_result,
+    });
+  }
+}
+
+async function fetch_record(game_uuid) {
+  console.log(game_uuid);
+  const majsoul = new Majsoul(config.mjsoul_server_url);
+  const full_record = await majsoul.getRecords(game_uuid); // 牌譜データ
+
+  let hora_log = parse_hule(full_record);
+  
+  const record_info = {
+    //dummy
+    uuid: game_uuid,
+    start_time : "-",
+    end_time : "-",
+    accounts : [
+      {account_id : 100, nickname : "a"},{account_id : 200, nickname : "b"},{account_id : 300, nickname : "c"}
+    ],
+    config : {
+      mode : {
+        detail_rule : {
+          have_liujumanguan : false,
+          have_qieshangmanguan : false,
+        }
+      }
+    },
+
+  };
+
+  for(const hora of hora_log) {
+    record_to_result(hora, record_info);
+    // writer.write(hora);
+  }
+  console.log(hora_log);
+}
+
 async function fetch_contest_info(contest_id, options) {
   const majsoul = new Majsoul(config.mjsoul_server_url);
   const contest_info = await majsoul.getContestInfoByContestId(contest_id);
@@ -440,5 +477,5 @@ async function fetch_contest_by_contest_id(contest_id, options){
   await fetch_contest_record(unique_id, options);
 }
 
-module.exports = {fetch_contest_record, fetch_contest_info, fetch_contest_by_contest_id, custom_fan_name: override_fan_name};
+module.exports = {fetch_record, fetch_contest_record, fetch_contest_info, fetch_contest_by_contest_id, custom_fan_name: override_fan_name};
 
