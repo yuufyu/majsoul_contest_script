@@ -361,7 +361,7 @@ async function fetch_contest_record(contest_unique_id, options) {
           }else if(/(.*役満)/g.test(hora_result)){
             const fans_str = hora['fans'];
             const fans = JSON.parse(fans_str).map(fan => {
-              return custom_fan_name(fan.name, hora)
+              return override_fan_name(fan.name, hora)
             });
             agariyaku.push(...fans);
           }
@@ -404,7 +404,7 @@ function is_daishitisei(hora){
 }
 
 // 槍槓
-function is_chankan_kokushi(hora){
+function is_chankan(hora){
   const prev_action = hora.prev_action;
   if(prev_action){
     return prev_action.name == 'RecordAnGangAddGang' && (prev_action.data['type'] == 2 || prev_action.data['type'] == 3);
@@ -412,14 +412,14 @@ function is_chankan_kokushi(hora){
   return false;
 }
 
-function custom_fan_name(fan_name, hora){
+function override_fan_name(fan_name, hora){
   let fan_name_str = fan_name;
 
   if(is_daishitisei(hora)){
     fan_name_str = "大七星";
   }
 
-  if(is_chankan_kokushi(hora)){
+  if(is_chankan(hora) && fan_name == "国士無双"){
     fan_name_str = "国士無双(槍槓)";
   }
 
@@ -440,5 +440,5 @@ async function fetch_contest_by_contest_id(contest_id, options){
   await fetch_contest_record(unique_id, options);
 }
 
-module.exports = {fetch_contest_record, fetch_contest_info, fetch_contest_by_contest_id, custom_fan_name};
+module.exports = {fetch_contest_record, fetch_contest_info, fetch_contest_by_contest_id, custom_fan_name: override_fan_name};
 
