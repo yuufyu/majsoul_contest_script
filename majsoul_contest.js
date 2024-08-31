@@ -411,6 +411,8 @@ function override_fan_name(fan_name, hora){
 }
 
 function record_to_result(hora, record_info){
+  record_info.accounts.sort((a, b) => {return ('seat' in a ? a.seat : 0) - ('seat' in b ? b.seat : 0);});
+
   Object.assign(hora, {
     game_uuid : record_info['uuid'],
     start_time : record_info['start_time'],
